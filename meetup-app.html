@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>SDRA World</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/nagoshiashumari/Rpg-Awesome@master/css/rpg-awesome.min.css">
+<style>
+  :root {
+    --surface: #FFFFFF;
+    --surface-muted: #F4F2F8;
+    --border: #E4E0EC;
+    --text-primary: #1A1625;
+    --text-secondary: #6B6577;
+    --text-tertiary: #A7A1B3;
+    --success: #3B6D11;
+    --success-tint: #EAF3DE;
+    --star-on: #BA7517;
+    --star-off: #D3D1C7;
+    --danger: #993C1D;
+    --radius-md: 8px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--surface-muted);
+    color: var(--text-primary);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .page { max-width: 420px; margin: 0 auto; padding: 1rem; min-height: 100vh; }
+
+  .app-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    letter-spacing: 0.03em; margin: 0.25rem 0 1rem; text-align: center;
+  }
+
+  /* LIST */
+  .list-grid { display: flex; flex-direction: column; gap: 10px; }
+
+  .playbook-tile {
+    background: var(--surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px; cursor: pointer;
+  }
+  .playbook-tile:active { background: var(--surface-muted); }
+
+  .playbook-tile.locked {
+    opacity: 0.55; cursor: default;
+    background: var(--surface-muted);
+    border-style: dashed;
+  }
+  .playbook-tile.locked:active { background: var(--surface-muted); }
+
+  .tile-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 20px; color: #fff;
+  }
+
+  .tile-text { flex: 1; min-width: 0; }
+
+  .tile-eyebrow { font-size: 11px; color: var(--text-tertiary); margin: 0; text-transform: lowercase; font-weight: 600; }
+
+  .tile-name { font-size: 16.5px; font-weight: 700; margin: 1px 0 2px; }
+
+  .tile-blurb {
+    font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.4;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+
+  .tile-event-tag {
+    font-size: 10.5px; font-weight: 700; color: var(--star-on);
+    background: #FAEEDA; padding: 2px 7px; border-radius: 20px;
+    margin-left: 7px; text-transform: lowercase; vertical-align: middle; white-space: nowrap;
+  }
+
+  .tile-progress-badge {
+    font-size: 11px; font-weight: 700; color: var(--success);
+    background: var(--success-tint); padding: 3px 8px;
+    border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+  }
+
+  .tile-completed-badge {
+    font-size: 11px; font-weight: 700; color: #fff;
+    background: var(--success); padding: 3px 8px;
+    border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+  }
+
+  .chevron { color: var(--text-tertiary); font-size: 18px; flex-shrink: 0; }
+
+  /* DETAIL */
+  .back-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+    cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 600;
+  }
+  .back-row:active { opacity: 0.6; }
+
+  .card { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
+
+  .header { color: #fff; padding: 1.25rem 1.25rem 1rem; display: flex; align-items: center; gap: 12px; }
+
+  .header-icon {
+    width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px;
+  }
+
+  .header-eyebrow { font-size: 12px; margin: 0 0 2px; opacity: 0.85; font-weight: 600; text-transform: lowercase; }
+  .header-title { font-size: 21px; font-weight: 700; margin: 0; letter-spacing: 0.02em; }
+
+  .blurb { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+
+  .event-note { padding: 8px 1.25rem; background: #FAEEDA; color: #854F0B; font-size: 12.5px; font-weight: 600; margin: 0; text-align: center; }
+
+  .xp-section { padding: 1.25rem; text-align: center; border-bottom: 1px solid var(--border); }
+
+  .xp-label { font-size: 12px; color: var(--text-secondary); margin: 0 0 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: lowercase; }
+
+  .stars { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+  .star { font-size: 30px; color: var(--star-off); transition: color 0.15s; line-height: 1; }
+  .star.on { color: var(--star-on); }
+
+  .prize-line { font-size: 13.5px; margin: 12px 0 0; min-height: 18px; font-weight: 600; color: var(--success); opacity: 0; transition: opacity 0.2s; }
+  .prize-line.show { opacity: 1; }
+
+  .section { padding: 1.1rem 1.25rem 0.4rem; }
+  .section-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 10px; text-transform: lowercase; }
+
+  .moves { display: flex; flex-direction: column; gap: 6px; }
+
+  .move-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: var(--radius-md); cursor: pointer; user-select: none; }
+  .move-row:active { background: var(--surface-muted); }
+
+  .box {
+    width: 21px; height: 21px; border-radius: 6px; border: 1.5px solid var(--border);
+    flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s; color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .box.checked { background: var(--success); border-color: var(--success); }
+  .move-text { font-size: 14.5px; line-height: 1.5; }
+
+  .footer { padding: 1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 8px; }
+
+  .btn {
+    width: 100%; font-size: 13.5px; font-weight: 600; padding: 11px;
+    border-radius: var(--radius-md); border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-secondary); cursor: pointer;
+  }
+  .btn:active { background: var(--surface-muted); }
+  .btn-danger { color: var(--danger); }
+  .btn-primary {
+    background: var(--success); border-color: var(--success); color: #fff;
+    font-size: 14px;
+  }
+  .btn-primary:active { opacity: 0.85; background: var(--success); }
+
+  details { margin-top: 12px; }
+  summary { font-size: 13px; color: var(--text-secondary); cursor: pointer; padding: 4px; font-weight: 600; }
+  .principles { padding: 10px 4px 4px; font-style: italic; font-size: 14px; color: var(--text-secondary); line-height: 1.85; }
+
+  /* CONGRATS SCREEN */
+  .congrats-view {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 70vh; text-align: center; padding: 2rem 1rem;
+  }
+  .congrats-icon { font-size: 64px; margin-bottom: 1rem; }
+  .congrats-title { font-size: 24px; font-weight: 700; margin: 0 0 12px; }
+  .congrats-body { font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 2rem; max-width: 280px; }
+  .congrats-hint { font-size: 13px; color: var(--text-tertiary); font-style: italic; margin: 0 0 2rem; }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(26,22,37,0.5);
+    display: none; align-items: center; justify-content: center;
+    padding: 1.5rem; z-index: 10;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 1.25rem; max-width: 340px; width: 100%; }
+  .modal-title { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
+  .modal-body { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 16px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions .btn { margin: 0; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <p class="app-title">SDRA World Playbooks</p>
+
+  <div id="list-view">
+    <div class="list-grid" id="list-grid"></div>
+  </div>
+
+  <div id="detail-view" class="hidden">
+    <div class="back-row" id="back-btn"><span>‹</span><span>all playbooks</span></div>
+    <div class="card">
+      <div class="header" id="detail-header">
+        <div class="header-icon" id="detail-icon"></div>
+        <div>
+          <p class="header-eyebrow" id="detail-eyebrow"></p>
+          <p class="header-title" id="detail-name"></p>
+        </div>
+      </div>
+      <p class="blurb" id="detail-blurb"></p>
+      <p class="event-note hidden" id="detail-event-note"></p>
+      <div class="xp-section">
+        <p class="xp-label">mark xp <span id="xp-count">0</span> / <span id="xp-total">4</span></p>
+        <div class="stars" id="stars"></div>
+        <p class="prize-line" id="prize-line">show this screen to claim your sticker or button</p>
+      </div>
+      <div class="section">
+        <p class="section-label" id="specific-label">whenever you...</p>
+        <div class="moves" id="specific-moves"></div>
+      </div>
+      <div class="section">
+        <p class="section-label">basic moves. also mark xp whenever you...</p>
+        <div class="moves" id="basic-moves"></div>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary hidden" id="turnin-btn">✦ Turn in playbook</button>
+        <button class="btn" id="reset-btn">reset for next meetup</button>
+      </div>
+    </div>
+    <details id="principles-wrap">
+      <summary>principles</summary>
+      <div class="principles" id="detail-principles"></div>
+    </details>
+  </div>
+
+  <div id="congrats-view" class="hidden">
+    <div class="congrats-view">
+      <div class="congrats-icon">🎉</div>
+      <p class="congrats-title" id="congrats-title">Playbook Complete!</p>
+      <p class="congrats-body" id="congrats-body">Show this to the organizer to claim your sticker or button.</p>
+      <p class="congrats-hint" id="congrats-hint"></p>
+      <button class="btn" id="congrats-back" style="max-width:240px;">back to playbooks</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="switch-modal">
+  <div class="modal">
+    <p class="modal-title">Switch playbooks?</p>
+    <p class="modal-body">You have progress on your current playbook. Starting a new one will reset that progress. One playbook per meetup — this can't be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" id="cancel-switch">cancel</button>
+      <button class="btn btn-danger" id="confirm-switch">switch anyway</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var BASIC_MOVES = [
+    "Introduce yourself with your name and pronouns",
+    "Purchase an item from establishment",
+    "Bring someone into your conversation",
+    "Donate to SDRA"
+  ];
+
+  var PRINCIPLES = [
+    "Think about the well-being of those around you.",
+    "We respect each other's boundaries.",
+    "Make room for others at the table.",
+    "Shine a spotlight on your fellow players.",
+    "Learn everyone's name; let them be human."
+  ];
+
+  var PLAYBOOKS = [
+    {
+      id: "fae",
+      eyebrow: "the",
+      name: "Fae",
+      icon: "ra-fairy",
+      color: "#D85A30",
+      blurb: "A magical creature of the wild, drawn to the festivities. You treat all promises as binding and ensure everyone feels included.",
+      threshold: 4,
+      moves: [
+        "Share a genuine compliment with someone",
+        "Help someone isolated join a conversation or activity",
+        "Offer a small, unexpected token to someone",
+        "Introduce two people who do not yet know each other"
+      ]
+    },
+    {
+      id: "adventurer",
+      eyebrow: "the",
+      name: "Adventurer",
+      icon: "ra-compass",
+      color: "#639922",
+      blurb: "You look for new experiences and love taking in customs and adventures the world provides. You are always on the look out for the next new thing.",
+      threshold: 4,
+      moves: [
+        "Ask someone a question about something new to you",
+        "Try something new from the venue",
+        "Try a game you've never played before",
+        "Play a character type you don't typically play"
+      ]
+    },
+    {
+      id: "guard",
+      eyebrow: "the",
+      name: "Guard",
+      icon: "ra-shield",
+      color: "#185FA5",
+      blurb: "You have been around and know the way of the world. You know when to take action but also when to listen to those around you and make the best choice.",
+      threshold: 4,
+      moves: [
+        "Shine the spotlight on another member or player's character",
+        "Pause the conversation and catch someone up",
+        "Welcome someone new and introduce them to the group",
+        "High five or fist bump someone for being awesome"
+      ]
+    },
+    {
+      id: "wizard",
+      eyebrow: "the",
+      name: "Wizard",
+      icon: "ra-crystal-ball",
+      color: "#534AB7",
+      blurb: "You are the architect of other worlds, shaping adventure for everyone at the table. You hold the spotlight only so you can pass it to others.",
+      threshold: 4,
+      moves: [
+        "Pitch a game at a Chat and Play",
+        "Ask someone about their character",
+        "Propose or run a meetup game",
+        "Demonstrate how to use safety tools in a game"
+      ]
+    },
+    {
+      id: "acolyte",
+      eyebrow: "the",
+      name: "Acolyte",
+      icon: "ra-candle",
+      color: "#9FE1CB",
+      blurb: "You're new to all this, and that's exactly the point. Every question you ask and every game you try makes this place a little more welcoming for the next newcomer too.",
+      threshold: 4,
+      moves: [
+        "Play a game you've never played before",
+        "Make a small change to the environment to make someone (even yourself) more comfortable",
+        "Tell someone what you're excited about",
+        "Ask questions about a game or event"
+      ]
+    },
+    {
+      id: "tavern-crawler",
+      eyebrow: "the",
+      name: "Tavern Crawler",
+      icon: "ra-beer",
+      color: "#BA7517",
+      eventOnly: "beer events",
+      blurb: "You believe the best stories happen between rounds. You raise a glass to good company and look out for everyone at the table, water included.",
+      threshold: 4,
+      moves: [
+        "Propose a toast",
+        "Cheers another member",
+        "Drink a glass of water",
+        "Ask someone about a grand adventure"
+      ]
+    },
+    {
+      id: "scribe",
+      eyebrow: "the",
+      name: "Scribe",
+      icon: "ra-quill-ink",
+      color: "#993556",
+      blurb: "You see the moment worth remembering. What you notice and share keeps the story going long after the table breaks up.",
+      threshold: 4,
+      moves: [
+        "Take photos of a game or event",
+        "Look up something helpful",
+        "Take notes about a game or event",
+        "Post notes and photos to discord/meetup/socials"
+      ]
+    },
+    {
+      id: "dragon",
+      eyebrow: "the",
+      name: "Dragon",
+      icon: "ra-dragon",
+      color: "#7A1E1E",
+      blurb: "Ancient. Patient. Inevitable. You have seen empires rise and fall, and yet here you are — drawn to the warmth of a good table.",
+      threshold: 4,
+      moves: [
+        "Find someone who has never met you before and make them feel remembered",
+        "Settle a disagreement with grace and leave both sides better for it",
+        "Share a story from a past event that makes someone want to come back",
+        "Bring together three people who have never all been in the same conversation"
+      ],
+      unlockCondition: { type: "completions", count: 3 },
+      hint: "Something ancient stirs... Complete 3 playbooks across your adventures to reveal this."
+    }
+  ];
+
+  var STORAGE_KEY = "meetup-app-state";
+  var COMPLETION_LOG_KEY = "sdra-completion-log";
+  var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwm2wbuekQUgZP6y5sMMME53cJCmJMzwOHogPt-YM_Ox1akKkMUcVXXjpglwK7vdvFH5A/exec";
+
+  function logEvent(event, playbook, note) {
+    try {
+      var url = ANALYTICS_URL
+        + "?event=" + encodeURIComponent(event || "")
+        + "&playbook=" + encodeURIComponent(playbook || "")
+        + "&note=" + encodeURIComponent(note || "");
+      fetch(url, { method: "GET", mode: "no-cors" });
+    } catch (e) {}
+  }
+
+  var state = { activePlaybookId: null, checked: [] };
+  var completionLog = []; // array of playbook ids, persists across meetups
+  var pendingPlaybookId = null;
+
+  function loadState() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) state = JSON.parse(saved);
+    } catch (e) {}
+    try {
+      var log = localStorage.getItem(COMPLETION_LOG_KEY);
+      if (log) completionLog = JSON.parse(log);
+    } catch (e) {}
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function saveLog() {
+    try { localStorage.setItem(COMPLETION_LOG_KEY, JSON.stringify(completionLog)); } catch (e) {}
+  }
+
+  function getPlaybook(id) {
+    return PLAYBOOKS.filter(function (p) { return p.id === id; })[0];
+  }
+
+  function isUnlocked(pb) {
+    if (!pb.unlockCondition) return true;
+    if (pb.unlockCondition.type === "completions") {
+      return completionLog.length >= pb.unlockCondition.count;
+    }
+    return false;
+  }
+
+  function hasCompletedPlaybook(id) {
+    return completionLog.indexOf(id) !== -1;
+  }
+
+  function progressCount(playbookId) {
+    if (state.activePlaybookId !== playbookId) return 0;
+    return state.checked.length;
+  }
+
+  // ---------- LIST VIEW ----------
+
+  function renderList() {
+    var grid = document.getElementById("list-grid");
+    grid.innerHTML = "";
+
+    PLAYBOOKS.forEach(function (pb) {
+      var unlocked = isUnlocked(pb);
+      var tile = document.createElement("div");
+      tile.className = "playbook-tile" + (unlocked ? "" : " locked");
+
+      var icon = document.createElement("div");
+      icon.className = "tile-icon";
+      icon.style.background = unlocked ? pb.color : "#9E9AAA";
+      icon.innerHTML = unlocked
+        ? '<i class="ra ' + pb.icon + '" aria-hidden="true"></i>'
+        : '<i class="ra ra-lock-picks" aria-hidden="true"></i>';
+
+      var textWrap = document.createElement("div");
+      textWrap.className = "tile-text";
+
+      var eyebrow = document.createElement("p");
+      eyebrow.className = "tile-eyebrow";
+      eyebrow.textContent = unlocked ? pb.eyebrow : "???";
+
+      var name = document.createElement("p");
+      name.className = "tile-name";
+      name.textContent = unlocked ? pb.name : "Unknown";
+      if (unlocked && pb.eventOnly) {
+        var eventTag = document.createElement("span");
+        eventTag.className = "tile-event-tag";
+        eventTag.textContent = pb.eventOnly;
+        name.appendChild(eventTag);
+      }
+
+      var blurb = document.createElement("p");
+      blurb.className = "tile-blurb";
+      blurb.textContent = unlocked ? pb.blurb : pb.hint;
+
+      textWrap.appendChild(eyebrow);
+      textWrap.appendChild(name);
+      textWrap.appendChild(blurb);
+
+      tile.appendChild(icon);
+      tile.appendChild(textWrap);
+
+      if (unlocked) {
+        if (hasCompletedPlaybook(pb.id)) {
+          var doneBadge = document.createElement("span");
+          doneBadge.className = "tile-completed-badge";
+          doneBadge.textContent = "✓ done";
+          tile.appendChild(doneBadge);
+        } else {
+          var count = progressCount(pb.id);
+          if (state.activePlaybookId === pb.id && count > 0) {
+            var badge = document.createElement("span");
+            badge.className = "tile-progress-badge";
+            badge.textContent = Math.min(count, pb.threshold) + "/" + pb.threshold;
+            tile.appendChild(badge);
+          }
+        }
+
+        var chev = document.createElement("span");
+        chev.className = "chevron";
+        chev.textContent = "›";
+        tile.appendChild(chev);
+
+        tile.addEventListener("click", function () { selectPlaybook(pb.id); });
+      }
+
+      grid.appendChild(tile);
+    });
+  }
+
+  function selectPlaybook(id) {
+    var hasOtherProgress = state.activePlaybookId &&
+      state.activePlaybookId !== id &&
+      state.checked.length > 0;
+
+    if (hasOtherProgress) {
+      pendingPlaybookId = id;
+      document.getElementById("switch-modal").classList.add("show");
+      return;
+    }
+
+    if (state.activePlaybookId !== id) {
+      state.activePlaybookId = id;
+      state.checked = [];
+      saveState();
+      logEvent("playbook_selected", id, "");
+    }
+    showDetail(id);
+  }
+
+  // ---------- DETAIL VIEW ----------
+
+  function showDetail(id) {
+    var pb = getPlaybook(id);
+    document.getElementById("list-view").classList.add("hidden");
+    document.getElementById("congrats-view").classList.add("hidden");
+    document.getElementById("detail-view").classList.remove("hidden");
+
+    document.getElementById("detail-header").style.background = pb.color;
+    document.getElementById("detail-icon").innerHTML = '<i class="ra ' + pb.icon + '" aria-hidden="true"></i>';
+    document.getElementById("detail-eyebrow").textContent = pb.eyebrow;
+    document.getElementById("detail-name").textContent = pb.name;
+    document.getElementById("detail-blurb").textContent = pb.blurb;
+
+    var eventNoteEl = document.getElementById("detail-event-note");
+    if (pb.eventOnly) {
+      eventNoteEl.textContent = "Only available at " + pb.eventOnly;
+      eventNoteEl.classList.remove("hidden");
+    } else {
+      eventNoteEl.classList.add("hidden");
+    }
+
+    document.getElementById("xp-total").textContent = pb.threshold;
+    document.getElementById("detail-principles").innerHTML = PRINCIPLES.join("<br>");
+
+    var starsEl = document.getElementById("stars");
+    starsEl.innerHTML = "";
+    for (var i = 0; i < pb.threshold; i++) {
+      var s = document.createElement("span");
+      s.id = "star-" + i;
+      s.className = "star";
+      s.textContent = "☆";
+      starsEl.appendChild(s);
+    }
+
+    var specificEl = document.getElementById("specific-moves");
+    specificEl.innerHTML = "";
+    pb.moves.forEach(function (m, i) { renderRow(m, "specific-" + i, specificEl); });
+
+    var basicEl = document.getElementById("basic-moves");
+    basicEl.innerHTML = "";
+    BASIC_MOVES.forEach(function (m, i) { renderRow(m, "basic-" + i, basicEl); });
+
+    renderProgress(pb);
+  }
+
+  function renderRow(text, id, container) {
+    var row = document.createElement("div");
+    row.className = "move-row";
+
+    var box = document.createElement("span");
+    box.className = "box";
+    box.id = "box-" + id;
+
+    var label = document.createElement("span");
+    label.className = "move-text";
+    label.textContent = text;
+
+    row.appendChild(box);
+    row.appendChild(label);
+    row.addEventListener("click", function () { toggleMove(id); });
+    container.appendChild(row);
+  }
+
+  function toggleMove(id) {
+    var idx = state.checked.indexOf(id);
+    if (idx === -1) { state.checked.push(id); }
+    else { state.checked.splice(idx, 1); }
+    saveState();
+    renderProgress(getPlaybook(state.activePlaybookId));
+  }
+
+  function renderProgress(pb) {
+    var count = state.checked.length;
+    var capped = Math.min(count, pb.threshold);
+    var complete = count >= pb.threshold;
+
+    document.getElementById("xp-count").textContent = capped;
+
+    for (var i = 0; i < pb.threshold; i++) {
+      var star = document.getElementById("star-" + i);
+      if (!star) continue;
+      var on = i < count;
+      star.classList.toggle("on", on);
+      star.textContent = on ? "★" : "☆";
+    }
+
+    pb.moves.forEach(function (m, i) { paintBox("specific-" + i); });
+    BASIC_MOVES.forEach(function (m, i) { paintBox("basic-" + i); });
+
+    var prizeLine = document.getElementById("prize-line");
+    prizeLine.classList.toggle("show", complete);
+
+    // Show "turn in" button only when complete and not already logged
+    var turninBtn = document.getElementById("turnin-btn");
+    var alreadyDone = hasCompletedPlaybook(pb.id);
+    turninBtn.classList.toggle("hidden", !complete || alreadyDone);
+  }
+
+  function paintBox(id) {
+    var box = document.getElementById("box-" + id);
+    if (!box) return;
+    var isOn = state.checked.indexOf(id) !== -1;
+    box.classList.toggle("checked", isOn);
+    box.textContent = isOn ? "✓" : "";
+  }
+
+  // ---------- TURN IN ----------
+
+  document.getElementById("turnin-btn").addEventListener("click", function () {
+    var id = state.activePlaybookId;
+    if (!id) return;
+
+    if (!hasCompletedPlaybook(id)) {
+      completionLog.push(id);
+      saveLog();
+      logEvent("playbook_completed", id, "total:" + completionLog.length);
+    }
+
+    // Reset per-meetup state
+    state.checked = [];
+    state.activePlaybookId = null;
+    saveState();
+
+    showCongrats(id);
+  });
+
+  function showCongrats(id) {
+    var pb = getPlaybook(id);
+    document.getElementById("detail-view").classList.add("hidden");
+    document.getElementById("list-view").classList.add("hidden");
+    document.getElementById("congrats-view").classList.remove("hidden");
+
+    document.getElementById("congrats-title").textContent = pb.name + " Complete!";
+    document.getElementById("congrats-body").textContent =
+      "You've completed " + completionLog.length + " playbook" + (completionLog.length === 1 ? "" : "s") + " total. Show this to the organizer to claim your sticker or button.";
+
+    // Check if a new playbook just unlocked
+    var hint = "";
+    PLAYBOOKS.forEach(function (p) {
+      if (p.unlockCondition && p.unlockCondition.type === "completions") {
+        var needed = p.unlockCondition.count;
+        var remaining = needed - completionLog.length;
+        if (remaining > 0) {
+          hint = remaining + " more playbook" + (remaining === 1 ? "" : "s") + " to unlock something hidden...";
+        } else if (remaining === 0) {
+          hint = "✦ A new playbook has been revealed.";
+        }
+      }
+    });
+    document.getElementById("congrats-hint").textContent = hint;
+  }
+
+  document.getElementById("congrats-back").addEventListener("click", function () {
+    document.getElementById("congrats-view").classList.add("hidden");
+    document.getElementById("list-view").classList.remove("hidden");
+    renderList();
+  });
+
+  // ---------- NAVIGATION ----------
+
+  document.getElementById("back-btn").addEventListener("click", function () {
+    document.getElementById("detail-view").classList.add("hidden");
+    document.getElementById("list-view").classList.remove("hidden");
+    renderList();
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state.checked = [];
+    saveState();
+    renderProgress(getPlaybook(state.activePlaybookId));
+  });
+
+  document.getElementById("cancel-switch").addEventListener("click", function () {
+    pendingPlaybookId = null;
+    document.getElementById("switch-modal").classList.remove("show");
+  });
+
+  document.getElementById("confirm-switch").addEventListener("click", function () {
+    state.activePlaybookId = pendingPlaybookId;
+    state.checked = [];
+    saveState();
+    document.getElementById("switch-modal").classList.remove("show");
+    showDetail(pendingPlaybookId);
+    pendingPlaybookId = null;
+  });
+
+  // ---------- INIT ----------
+
+  loadState();
+  renderList();
+  logEvent("app_opened", "", "");
+
+  if (state.activePlaybookId && state.checked.length > 0) {
+    showDetail(state.activePlaybookId);
+  }
+</script>
+
+</body>
+</html>
